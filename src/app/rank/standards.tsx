@@ -22,7 +22,10 @@ export default function Standards() {
   const bwRows = sex === 'male' ? [60, 70, 80, 90, 100, 110, 120] : [45, 50, 60, 70, 80, 90, 100];
   const ageRows = [18, 30, 40, 50, 60, 70];
   const nearest = (rows: number[], v: number) => rows.reduce((a, b) => (Math.abs(b - v) < Math.abs(a - v) ? b : a));
-  const rows = by === 'bw' ? bwRows.map((r) => ({ key: r, label: `${toDisplay(r, unit)} ${unit}`, th: thresholds(exerciseId, sex, r, age) })) : ageRows.map((r) => ({ key: r, label: `${r}`, th: thresholds(exerciseId, sex, bw, r) }));
+  const rows =
+    by === 'bw'
+      ? bwRows.map((r) => ({ key: r, label: `${toDisplay(r, unit)} ${unit}`, th: thresholds(exerciseId, sex, r, age) }))
+      : ageRows.map((r) => ({ key: r, label: `${r}`, th: thresholds(exerciseId, sex, bw, r) }));
   const you = by === 'bw' ? nearest(bwRows, bw) : nearest(ageRows, age);
 
   const cell = { flex: 1, textAlign: 'center' as const, fontVariant: ['tabular-nums' as const], fontSize: 14 };
@@ -32,7 +35,8 @@ export default function Standards() {
       <Card style={{ gap: 6 }}>
         <T v="bodyStrong">One standard for this exercise</T>
         <T v="small" style={{ fontSize: 12 }}>
-          Machines and bars feel different by brand, so compare your own ranks on the same equipment. Values are estimated 1RM in {unit}, {sex === 'male' ? 'men' : 'women'}
+          Machines and bars feel different by brand, so compare your own ranks on the same equipment. Values are estimated 1RM in {unit},{' '}
+          {sex === 'male' ? 'men' : 'women'}
           {by === 'bw' ? `, age ${age}` : `, ${toDisplay(bw, unit)} ${unit} bodyweight`}.
         </T>
       </Card>
@@ -60,7 +64,16 @@ export default function Standards() {
               key={r.key}
               accessible
               accessibilityLabel={`${r.label}: ${r.th.map((v, i) => `${LEVELS[i]} ${toDisplay(v, unit)}`).join(', ')}${mine ? ', closest to you' : ''}`}
-              style={{ flexDirection: 'row', alignItems: 'center', height: 44, paddingHorizontal: 6, borderRadius: rad(t, 10), backgroundColor: mine ? t.c.tint : 'transparent', borderWidth: mine ? 1 : 0, borderColor: t.c.tintBorder }}>
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                height: 44,
+                paddingHorizontal: 6,
+                borderRadius: rad(t, 10),
+                backgroundColor: mine ? t.c.tint : 'transparent',
+                borderWidth: mine ? 1 : 0,
+                borderColor: t.c.tintBorder,
+              }}>
               <Text style={{ width: 84, color: t.c.text, fontFamily: t.fonts.semibold, fontSize: 14 }}>
                 {r.label}
                 {mine ? <Text style={{ color: strong, fontSize: 11 }}> you</Text> : null}

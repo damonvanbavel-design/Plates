@@ -4,8 +4,11 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { LineChart } from '@/components/chart';
 import { Icon } from '@/components/icons';
-import { Button, Card, Chip, Empty, Row, Screen, Segmented, Stat, T, btnRad, useTheme } from '@/components/ui';
-import { bestsFor, exerciseName, fmtDate, seriesFor, toDisplay, type Metric } from '@/lib/calc';
+import Animated, { FadeInUp, useReducedMotion } from 'react-native-reanimated';
+
+import { Appear, Button, Card, Chip, Empty, Row, Screen, Segmented, Stat, T, btnRad, useTheme } from '@/components/ui';
+import { bestsFor, exerciseName, fmtDate, fmtSeconds, fmtSet, seriesFor, toDisplay, type Metric } from '@/lib/calc';
+import { kindOf } from '@/lib/registry';
 import { useAllExercises, useStore } from '@/lib/store';
 
 export default function Progress() {
@@ -24,12 +27,24 @@ export default function Progress() {
   const [picked, setPicked] = useState<string | null>(null);
   const [metric, setMetric] = useState<Metric>('e1rm');
   const exId = picked && done.includes(picked) ? picked : done[0];
+  const reduced = useReducedMotion();
+  const kind = exId ? kindOf(exId) : 'weight';
+  const m: Metric = kind === 'time' ? 'time' : kind === 'bodyweight' && metric === 'weight' ? 'e1rm' : metric;
 
   const rankButton = (
     <Pressable
       accessibilityRole="button"
       onPress={() => router.push('/rank')}
-      style={{ height: 40, paddingHorizontal: 14, borderRadius: btnRad(t, 20), borderWidth: 1.5, borderColor: t.dark ? t.c.accent : t.c.text, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+      style={{
+        height: 40,
+        paddingHorizontal: 14,
+        borderRadius: btnRad(t, 20),
+        borderWidth: 1.5,
+        borderColor: t.dark ? t.c.accent : t.c.text,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+      }}>
       <Icon name="rank" size={16} color={t.dark ? t.c.accent : t.c.text} strokeWidth={2.2} />
       <Text style={{ color: t.dark ? t.c.accent : t.c.text, fontFamily: t.fonts.bold, fontSize: 13 }}>Check rank</Text>
     </Pressable>
@@ -46,12 +61,13 @@ export default function Progress() {
       </Screen>
     );
 
-  const pts = seriesFor(workouts, exId, metric);
+  const pts = seriesFor(workouts, exId, m);
   const bests = bestsFor(workouts, exId);
   const first = pts[0]?.value ?? 0;
   const lastV = pts[pts.length - 1]?.value ?? 0;
   const change = first > 0 && pts.length > 1 ? Math.round(((lastV - first) / first) * 100) : null;
-  const metricLabel = metric === 'e1rm' ? 'Best est. 1RM' : metric === 'weight' ? 'Top weight' : 'Best session volume';
+  const metricLabel = m === 'time' ? 'Longest hold' : m === 'e1rm' ? 'Best est. 1RM' : m === 'weight' ? 'Top weight' : 'Best session volume';
+  const fmtV = (v: number) => (m === 'time' ? fmtSeconds(v) : `${toDisplay(Math.round(v), unit)}`);
   const best = pts.length ? Math.max(...pts.map((p) => p.value)) : 0;
   const myRanks = rankChecks.filter((r) => r.exerciseId === exId).sort((a, b) => b.createdAt - a.createdAt);
 
@@ -68,25 +84,27 @@ export default function Progress() {
         ))}
       </ScrollView>
 
-      <Segmented
-        options={[
-          { key: 'e1rm', label: 'Est. 1RM' },
-          { key: 'weight', label: 'Top weight' },
-          { key: 'volume', label: 'Volume' },
-        ]}
-        value={metric}
-        onChange={setMetric}
-      />
+      {kind !== 'time' && (
+        <Segmented
+          options={[
+            { key: 'e1rm', label: 'Est. 1RM' },
+            ...(kind === 'weight' ? [{ key: 'weight' as Metric, label: 'Top weight' }] : []),
+            { key: 'volume', label: 'Volume' },
+          ]}
+          value={m}
+          onChange={setMetric}
+        />
+      )}
 
       <Card style={{ paddingHorizontal: 12 }}>
         <Row style={{ justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 4, marginBottom: 10 }}>
           <View style={{ gap: 2 }}>
             <T v="small">{metricLabel}</T>
             <T v="bigNum">
-              {toDisplay(Math.round(best), unit)} <Text style={{ fontSize: 15, color: t.c.muted }}>{unit}</Text>
+              {fmtV(best)} {m !== 'time' && <Text style={{ fontSize: 15, color: t.c.muted }}>{unit}</Text>}
             </T>
           </View>
-          {change !== null && (
+          {change !== null && pts.length > 1 && (
             <T v="bodyStrong" color={t.dark ? t.c.accent : t.c.text}>
               {change >= 0 ? '+' : ''}
               {change}% since {fmtDate(pts[0]!.at, { day: 'numeric', month: 'short' })}
@@ -98,15 +116,37 @@ export default function Progress() {
             Log this exercise in one more workout to see a trend line.
           </T>
         ) : (
-          <LineChart points={pts.map((p) => ({ at: p.at, value: Number(toDisplay(p.value, unit)) }))} format={(v) => `${Math.round(v)} ${unit}`} />
+          <Animated.View key={`${exId}-${m}`} entering={reduced ? undefined : FadeInUp.duration(450)}>
+            <LineChart
+              points={pts.map((p) => ({ at: p.at, value: m === 'time' ? p.value : Number(toDisplay(p.value, unit)) }))}
+              format={(v) => (m === 'time' ? fmtSeconds(v) : `${Math.round(v)} ${unit}`)}
+            />
+          </Animated.View>
         )}
       </Card>
 
-      <Row gap={8}>
-        <Stat label="Heaviest" value={bests.heaviest ? `${toDisplay(bests.heaviest.weightKg, unit)} × ${bests.heaviest.reps}` : '–'} />
-        <Stat label="Best set" value={bests.bestE1rmSet ? `${toDisplay(bests.bestE1rmSet.weightKg, unit)} × ${bests.bestE1rmSet.reps}` : '–'} />
-        <Stat label="Sessions" value={String(bests.sessions)} />
-      </Row>
+      <Appear i={1}>
+        <Row gap={8}>
+          {kind === 'time' ? (
+            <Stat label="Longest" value={fmtSeconds(bests.bestDuration)} />
+          ) : (
+            <>
+              {kind === 'weight' && (
+                <Stat label="Heaviest" value={bests.heaviest ? `${toDisplay(bests.heaviest.weightKg, unit)} × ${bests.heaviest.reps}` : '–'} />
+              )}
+              <Stat
+                label="Best set"
+                value={
+                  bests.bestE1rmSet
+                    ? fmtSet(exId, { id: '', weightKg: bests.bestE1rmSet.weightKg, reps: bests.bestE1rmSet.reps, done: true }, unit)
+                    : '–'
+                }
+              />
+            </>
+          )}
+          <Stat label="Sessions" value={String(bests.sessions)} />
+        </Row>
+      </Appear>
 
       {myRanks.length > 0 && (
         <View style={{ gap: 8 }}>
@@ -120,7 +160,8 @@ export default function Progress() {
                     {r.level} · top {Math.max(1, 100 - r.percentile)}%
                   </T>
                   <T v="small" style={{ fontSize: 12 }}>
-                    {fmtDate(r.createdAt, { day: 'numeric', month: 'short', year: 'numeric' })} · {r.machine} · {toDisplay(r.weightKg, unit)} {unit} × {r.reps}
+                    {fmtDate(r.createdAt, { day: 'numeric', month: 'short', year: 'numeric' })} · {r.machine} · {toDisplay(r.weightKg, unit)} {unit} ×{' '}
+                    {r.reps}
                   </T>
                 </View>
               </Row>

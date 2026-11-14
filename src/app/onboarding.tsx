@@ -91,7 +91,13 @@ export default function Onboarding() {
         </Row>
       </View>
 
-      <Field label={`Bodyweight (${unit}) – optional, used for Rank`} value={bw} onChangeText={setBw} keyboardType="decimal-pad" placeholder="e.g. 80" />
+      <Field
+        label={`Bodyweight (${unit}) – optional, used for Rank`}
+        value={bw}
+        onChangeText={setBw}
+        keyboardType="decimal-pad"
+        placeholder="e.g. 80"
+      />
     </Screen>
   );
 }

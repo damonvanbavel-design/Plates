@@ -4,7 +4,15 @@ import Svg, { Circle, Line, Path, Text as SvgText } from 'react-native-svg';
 
 import { useTheme } from './ui';
 
-export function LineChart({ points, format, height = 190 }: { points: { at: number; value: number }[]; format: (v: number) => string; height?: number }) {
+export function LineChart({
+  points,
+  format,
+  height = 190,
+}: {
+  points: { at: number; value: number }[];
+  format: (v: number) => string;
+  height?: number;
+}) {
   const t = useTheme();
   const [w, setW] = useState(320);
   if (points.length === 0) return null;
@@ -30,7 +38,10 @@ export function LineChart({ points, format, height = 190 }: { points: { at: numb
   const dateLabel = (ts: number) => new Date(ts).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
   const last = points.length - 1;
   return (
-    <View onLayout={(e) => setW(e.nativeEvent.layout.width)} accessible accessibilityLabel={`Chart from ${format(points[0]!.value)} to ${format(points[last]!.value)}`}>
+    <View
+      onLayout={(e) => setW(e.nativeEvent.layout.width)}
+      accessible
+      accessibilityLabel={`Chart from ${format(points[0]!.value)} to ${format(points[last]!.value)}`}>
       <Svg width={w} height={height}>
         {ticks.map((v, i) => (
           <Line key={i} x1={padL} x2={w - padR} y1={Y(v)} y2={Y(v)} stroke={t.c.border} strokeWidth={1} />
@@ -43,9 +54,23 @@ export function LineChart({ points, format, height = 190 }: { points: { at: numb
         <Path d={area} fill={t.c.accent} opacity={0.1} />
         <Path d={d} stroke={t.c.accent} strokeWidth={2.5} fill="none" strokeLinejoin="round" strokeLinecap="round" />
         {points.map((p, i) => (
-          <Circle key={i} cx={X(i)} cy={Y(p.value)} r={i === last ? 5.5 : 3.5} fill={i === last ? t.c.accent : t.c.surface} stroke={t.c.accent} strokeWidth={2} />
+          <Circle
+            key={i}
+            cx={X(i)}
+            cy={Y(p.value)}
+            r={i === last ? 5.5 : 3.5}
+            fill={i === last ? t.c.accent : t.c.surface}
+            stroke={t.c.accent}
+            strokeWidth={2}
+          />
         ))}
-        <SvgText x={X(0)} y={height - 6} fontSize={10} fontFamily={t.fonts.regular} fill={t.c.muted} textAnchor={points.length === 1 ? 'middle' : 'start'}>
+        <SvgText
+          x={X(0)}
+          y={height - 6}
+          fontSize={10}
+          fontFamily={t.fonts.regular}
+          fill={t.c.muted}
+          textAnchor={points.length === 1 ? 'middle' : 'start'}>
           {dateLabel(points[0]!.at)}
         </SvgText>
         {points.length > 1 && (
@@ -59,7 +84,17 @@ export function LineChart({ points, format, height = 190 }: { points: { at: numb
 }
 
 /** Horizontal level bar for Rank */
-export function LevelBar({ thresholds, value, activeIndex, format }: { thresholds: number[]; value: number; activeIndex: number; format?: (v: number) => string }) {
+export function LevelBar({
+  thresholds,
+  value,
+  activeIndex,
+  format,
+}: {
+  thresholds: number[];
+  value: number;
+  activeIndex: number;
+  format?: (v: number) => string;
+}) {
   const t = useTheme();
   const [w, setW] = useState(320);
   const max = Math.max(thresholds[thresholds.length - 1]! * 1.15, value * 1.05);

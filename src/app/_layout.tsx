@@ -6,7 +6,9 @@ import { useEffect, useSyncExternalStore } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { ToastHost } from '@/components/toast';
 import { useTheme } from '@/components/ui';
+import { requestAppIcon } from '@/lib/appIcon';
 import { APP_FONTS } from '@/lib/fonts';
 import { useStore } from '@/lib/store';
 
@@ -40,6 +42,9 @@ export default function RootLayout() {
 
 function ThemedStack() {
   const t = useTheme();
+  useEffect(() => {
+    requestAppIcon(t.iconId);
+  }, [t.iconId]);
   return (
     <>
       <StatusBar style={t.dark ? 'light' : 'dark'} />
@@ -50,6 +55,7 @@ function ThemedStack() {
         <Stack.Screen name="picker" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="summary/[id]" options={{ animation: 'fade', gestureEnabled: false }} />
       </Stack>
+      <ToastHost />
     </>
   );
 }

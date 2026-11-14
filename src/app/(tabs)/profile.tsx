@@ -17,6 +17,7 @@ export default function Profile() {
   const workouts = useStore((s) => s.workouts);
   const routines = useStore((s) => s.routines);
   const resetAll = useStore((s) => s.resetAll);
+  const customs = useStore((s) => s.customThemes);
   const all = useAllExercises();
   const [bw, setBw] = useState(toDisplay(settings.bodyweightKg, settings.unit));
   const [birthYear, setBirthYear] = useState(settings.birthYear ? String(settings.birthYear) : '');
@@ -40,12 +41,16 @@ export default function Profile() {
   };
 
   const reset = () =>
-    Alert.alert('Delete all data?', 'This removes every workout, routine and setting from this phone. It cannot be undone. Export first if you want a copy.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete everything', style: 'destructive', onPress: resetAll },
-    ]);
+    Alert.alert(
+      'Delete all data?',
+      'This removes every workout, routine and setting from this phone. It cannot be undone. Export first if you want a copy.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete everything', style: 'destructive', onPress: resetAll },
+      ],
+    );
 
-  const theme = getTheme(settings.themeId);
+  const theme = getTheme(settings.themeId, customs);
 
   return (
     <Screen>
@@ -58,7 +63,9 @@ export default function Profile() {
           <Icon name="palette" color={t.dark ? t.c.accent : t.c.text} />
           <View style={{ flex: 1, gap: 2 }}>
             <T v="title">Theme</T>
-            <T v="small">{theme.name}</T>
+            <T v="small">
+              {theme.name} · {15 + customs.length} themes
+            </T>
           </View>
           <View style={{ flexDirection: 'row', gap: 4 }}>
             {[theme.c.bg, theme.c.surface, theme.c.accent].map((c, i) => (
@@ -85,7 +92,12 @@ export default function Profile() {
         <T v="label">Default rest timer</T>
         <Row gap={8} style={{ flexWrap: 'wrap' }}>
           {[60, 90, 120, 180, 240].map((s) => (
-            <Chip key={s} label={s < 120 ? `${s}s` : `${s / 60} min`} selected={settings.restSeconds === s} onPress={() => update({ restSeconds: s })} />
+            <Chip
+              key={s}
+              label={s < 120 ? `${s}s` : `${s / 60} min`}
+              selected={settings.restSeconds === s}
+              onPress={() => update({ restSeconds: s })}
+            />
           ))}
         </Row>
       </View>

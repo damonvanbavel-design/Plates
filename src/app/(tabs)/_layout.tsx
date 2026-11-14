@@ -21,8 +21,14 @@ export default function TabLayout() {
         sceneStyle: { backgroundColor: t.c.bg },
       }}>
       <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: ({ color }) => <Icon name="home" color={String(color)} size={24} /> }} />
-      <Tabs.Screen name="history" options={{ title: 'History', tabBarIcon: ({ color }) => <Icon name="calendar" color={String(color)} size={24} /> }} />
-      <Tabs.Screen name="progress" options={{ title: 'Progress', tabBarIcon: ({ color }) => <Icon name="chart" color={String(color)} size={24} /> }} />
+      <Tabs.Screen
+        name="history"
+        options={{ title: 'History', tabBarIcon: ({ color }) => <Icon name="calendar" color={String(color)} size={24} /> }}
+      />
+      <Tabs.Screen
+        name="progress"
+        options={{ title: 'Progress', tabBarIcon: ({ color }) => <Icon name="chart" color={String(color)} size={24} /> }}
+      />
       <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: ({ color }) => <Icon name="user" color={String(color)} size={24} /> }} />
     </Tabs>
   );

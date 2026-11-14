@@ -1,4 +1,5 @@
 import { type ReactNode } from 'react';
+import { Image } from 'expo-image';
 import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, LinearGradient, Mask, Path, Pattern, Rect, Stop } from 'react-native-svg';
@@ -13,7 +14,29 @@ export function Hero({ kicker, title, right }: { kicker: string; title: string; 
   const center = t.id === 'halftone';
   const size = t.id === 'sunny' ? 34 : t.id === 'crimson' || t.id === 'lash' ? 50 : t.id === 'chalk' ? 46 : 38;
   return (
-    <View style={{ backgroundColor: t.c.band, paddingTop: insets.top + 12, paddingHorizontal: 20, paddingBottom: t.motif === 'tape' ? 48 : banded || t.motif === 'dots' ? 24 : 4, overflow: 'hidden' }}>
+    <View
+      style={{
+        backgroundColor: t.c.band,
+        paddingTop: insets.top + 12,
+        paddingHorizontal: 20,
+        paddingBottom: t.motif === 'tape' ? 48 : banded || t.motif === 'dots' || t.image ? 24 : 4,
+        overflow: 'hidden',
+        minHeight: t.image ? insets.top + 170 : undefined,
+      }}>
+      {t.image ? (
+        <>
+          <Image
+            source={{ uri: t.image }}
+            style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
+            contentFit="cover"
+            accessibilityIgnoresInvertColors
+          />
+          <View
+            pointerEvents="none"
+            style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: `rgba(0,0,0,${t.imageOverlay ?? 0.4})` }}
+          />
+        </>
+      ) : null}
       {t.motif === 'stack' && (
         <View pointerEvents="none" style={{ position: 'absolute', left: -6, top: insets.top }}>
           {[0, 1, 2, 3].map((i) => (
@@ -44,7 +67,17 @@ export function Hero({ kicker, title, right }: { kicker: string; title: string; 
       )}
       {t.motif === 'tape' && (
         <View pointerEvents="none" style={{ position: 'absolute', left: -40, right: -40, bottom: 10, transform: [{ rotate: '-4deg' }] }}>
-          <View style={{ height: 24, backgroundColor: '#1F0A16', borderTopWidth: 3, borderBottomWidth: 3, borderStyle: 'dashed', borderColor: t.c.bg, justifyContent: 'center', overflow: 'hidden' }}>
+          <View
+            style={{
+              height: 24,
+              backgroundColor: '#1F0A16',
+              borderTopWidth: 3,
+              borderBottomWidth: 3,
+              borderStyle: 'dashed',
+              borderColor: t.c.bg,
+              justifyContent: 'center',
+              overflow: 'hidden',
+            }}>
             <Text numberOfLines={1} style={{ color: t.c.bg, fontFamily: t.fonts.bold, fontSize: 10, letterSpacing: 2 }}>
               {'   STAY STRONG · LIFT HEAVY · STAY STRONG · LIFT HEAVY · STAY STRONG · LIFT HEAVY'}
             </Text>
@@ -58,12 +91,20 @@ export function Hero({ kicker, title, right }: { kicker: string; title: string; 
           </Svg>
         </View>
       )}
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44 }}>
-        <Text style={{ fontFamily: t.fonts.semibold, fontSize: 12, letterSpacing: 1.4, textTransform: 'uppercase', color: t.c.bandMuted }}>{kicker}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44, gap: 12 }}>
+        <Text
+          numberOfLines={1}
+          maxFontSizeMultiplier={1.4}
+          style={{ flexShrink: 1, fontFamily: t.fonts.semibold, fontSize: 12, letterSpacing: 1.4, textTransform: 'uppercase', color: t.c.bandMuted }}>
+          {kicker}
+        </Text>
         {right}
       </View>
       <Text
         accessibilityRole="header"
+        maxFontSizeMultiplier={1.3}
+        adjustsFontSizeToFit
+        numberOfLines={2}
         style={{
           fontFamily: t.fonts.display,
           fontSize: size,
@@ -71,7 +112,7 @@ export function Hero({ kicker, title, right }: { kicker: string; title: string; 
           color: t.c.bandText,
           textTransform: t.upper && t.id !== 'lash' ? 'uppercase' : 'none',
           textAlign: center ? 'center' : 'left',
-          marginTop: 6,
+          marginTop: t.image ? 'auto' : 6,
         }}>
         {title}
       </Text>

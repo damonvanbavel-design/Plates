@@ -21,13 +21,7 @@ export const LEVELS = ['Beginner', 'Novice', 'Intermediate', 'Advanced', 'Elite'
 export type Level = (typeof LEVELS)[number];
 /** share of lifters each level beats */
 export const LEVEL_PERCENTILES = [5, 20, 50, 80, 95];
-export const LEVEL_MEANING = [
-  'stronger than ~5% of lifters',
-  'stronger than ~20%',
-  'stronger than ~50%',
-  'stronger than ~80%',
-  'stronger than ~95%',
-];
+export const LEVEL_MEANING = ['stronger than ~5% of lifters', 'stronger than ~20%', 'stronger than ~50%', 'stronger than ~80%', 'stronger than ~95%'];
 
 /** 1RM as a multiple of bodyweight at the reference bodyweight (80 kg men, 60 kg women) */
 const RATIOS: Record<string, { male: number[]; female: number[] }> = {

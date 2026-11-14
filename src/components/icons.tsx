@@ -1,8 +1,34 @@
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 export type IconName =
-  | 'home' | 'calendar' | 'chart' | 'user' | 'plus' | 'check' | 'play' | 'chevronDown' | 'chevronUp' | 'chevronRight'
-  | 'chevronLeft' | 'close' | 'more' | 'trash' | 'search' | 'trophy' | 'timer' | 'edit' | 'rank' | 'palette' | 'share' | 'dumbbell';
+  | 'home'
+  | 'calendar'
+  | 'chart'
+  | 'user'
+  | 'plus'
+  | 'check'
+  | 'play'
+  | 'chevronDown'
+  | 'chevronUp'
+  | 'chevronRight'
+  | 'chevronLeft'
+  | 'close'
+  | 'more'
+  | 'trash'
+  | 'search'
+  | 'trophy'
+  | 'timer'
+  | 'edit'
+  | 'rank'
+  | 'palette'
+  | 'share'
+  | 'dumbbell'
+  | 'info'
+  | 'star'
+  | 'starFilled'
+  | 'image'
+  | 'pause'
+  | 'globe';
 
 interface Props {
   name: IconName;
@@ -92,6 +118,42 @@ export function Icon({ name, size = 22, color, strokeWidth = 2 }: Props) {
         return <Path d="M12 3v12M7 8l5-5 5 5M5 14v6h14v-6" {...common} />;
       case 'dumbbell':
         return <Path d="M6 7v10M3 9v6M18 7v10M21 9v6M6 12h12" {...common} />;
+      case 'info':
+        return (
+          <>
+            <Circle cx={12} cy={12} r={9} {...common} />
+            <Path d="M12 11v6M12 7.5v.5" {...common} />
+          </>
+        );
+      case 'star':
+        return <Path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" {...common} />;
+      case 'starFilled':
+        return (
+          <Path
+            d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"
+            fill={color}
+            stroke={color}
+            strokeWidth={strokeWidth}
+            strokeLinejoin="round"
+          />
+        );
+      case 'image':
+        return (
+          <>
+            <Rect x={3} y={4} width={18} height={16} rx={2} {...common} />
+            <Circle cx={9} cy={10} r={1.6} {...common} />
+            <Path d="M21 16l-5-5-9 9" {...common} />
+          </>
+        );
+      case 'pause':
+        return <Path d="M9 6v12M15 6v12" {...common} />;
+      case 'globe':
+        return (
+          <>
+            <Circle cx={12} cy={12} r={9} {...common} />
+            <Path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18" {...common} />
+          </>
+        );
     }
   })();
   return (

@@ -1,14 +1,25 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, ScrollView, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
+import { Icon } from '@/components/icons';
+import { Sheet, SheetOption } from '@/components/sheet';
 import { Button, Card, Chip, Field, Header, Row, Screen, Segmented, T, rad, useTheme } from '@/components/ui';
 import { bestsFor, est1rm, exerciseName, fromDisplay, toDisplay } from '@/lib/calc';
 import { RANKABLE_IDS, isRankable, rank } from '@/lib/standards';
 import { useAllExercises, useStore } from '@/lib/store';
 import type { Sex } from '@/lib/types';
 
-const DEFAULT_MACHINES = ['Barbell', 'Smith machine', 'Dumbbells'];
+const EQUIPMENT_FOR: Record<string, string[]> = {
+  'bench-press': ['Barbell', 'Smith machine', 'Dumbbells', 'Chest press machine'],
+  'incline-bench-press': ['Barbell', 'Smith machine', 'Dumbbells', 'Incline press machine'],
+  squat: ['Barbell', 'Smith machine', 'Safety squat bar', 'Hack squat machine'],
+  'front-squat': ['Barbell', 'Smith machine'],
+  deadlift: ['Barbell', 'Trap bar', 'Smith machine'],
+  'overhead-press': ['Barbell', 'Smith machine', 'Dumbbells', 'Shoulder press machine'],
+  'barbell-row': ['Barbell', 'T-bar', 'Smith machine', 'Row machine'],
+  rdl: ['Barbell', 'Dumbbells', 'Smith machine'],
+};
 
 export default function RankForm() {
   const t = useTheme();
@@ -25,7 +36,9 @@ export default function RankForm() {
   const initialEx = params.exerciseId && isRankable(params.exerciseId) ? params.exerciseId : RANKABLE_IDS[0]!;
   const [exerciseId, setExerciseId] = useState(initialEx);
   const best = bestsFor(workouts, exerciseId).bestE1rmSet;
-  const [machine, setMachine] = useState(machines[0] ?? '');
+  const [machine, setMachine] = useState(machines[0] ?? EQUIPMENT_FOR[initialEx]?.[0] ?? 'Barbell');
+  const [equipOpen, setEquipOpen] = useState(false);
+  const [otherText, setOtherText] = useState('');
   const [weight, setWeight] = useState(best ? toDisplay(best.weightKg, unit) : '');
   const [reps, setReps] = useState(best ? String(best.reps) : '');
   const [bw, setBw] = useState(toDisplay(settings.bodyweightKg, unit));
@@ -34,6 +47,7 @@ export default function RankForm() {
 
   const pickExercise = (id: string) => {
     setExerciseId(id);
+    if (!(EQUIPMENT_FOR[id] ?? []).includes(machine) && !machines.includes(machine)) setMachine(EQUIPMENT_FOR[id]?.[0] ?? 'Barbell');
     const b = bestsFor(workouts, id).bestE1rmSet;
     setWeight(b ? toDisplay(b.weightKg, unit) : '');
     setReps(b ? String(b.reps) : '');
@@ -61,11 +75,23 @@ export default function RankForm() {
     updateSettings({ bodyweightKg: b, birthYear: new Date().getFullYear() - a, sex });
     const e = est1rm(w!, r);
     const res = rank(exerciseId, sex, b!, a, e);
-    const rc = addRankCheck({ exerciseId, machine: machine.trim(), weightKg: w!, reps: r, est1rm: e, level: res.level, percentile: res.percentile, bodyweightKg: b!, age: a, sex });
+    const rc = addRankCheck({
+      exerciseId,
+      machine: machine.trim(),
+      weightKg: w!,
+      reps: r,
+      est1rm: e,
+      level: res.level,
+      percentile: res.percentile,
+      bodyweightKg: b!,
+      age: a,
+      sex,
+    });
     router.push({ pathname: '/rank/result', params: { id: rc.id } });
   };
 
-  const machineOptions = [...new Set([...machines, ...DEFAULT_MACHINES])];
+  const standard = EQUIPMENT_FOR[exerciseId] ?? ['Barbell'];
+  const used = machines.filter((m) => !standard.includes(m));
 
   return (
     <Screen
@@ -85,7 +111,8 @@ export default function RankForm() {
       {unsupported && (
         <Card tint>
           <T v="small" color={t.c.tintText}>
-            Rank isn’t available for {exerciseName(all, unsupported)} yet. Machine and accessory exercises will be added once there’s enough data. Pick one of the lifts below.
+            Rank isn’t available for {exerciseName(all, unsupported)} yet. Machine and accessory exercises will be added once there’s enough data.
+            Pick one of the lifts below.
           </T>
         </Card>
       )}
@@ -100,12 +127,27 @@ export default function RankForm() {
       </View>
 
       <View style={{ gap: 8 }}>
-        <Field label="Machine or equipment" value={machine} onChangeText={setMachine} placeholder="e.g. Barbell, Smith machine, Technogym bench" />
-        <Row gap={8} style={{ flexWrap: 'wrap' }}>
-          {machineOptions.map((m) => (
-            <Chip key={m} label={m} selected={machine === m} onPress={() => setMachine(m)} />
-          ))}
-        </Row>
+        <T v="label">Machine or equipment</T>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Equipment: ${machine || 'not chosen'}. Change`}
+          onPress={() => setEquipOpen(true)}
+          style={{
+            minHeight: 52,
+            borderRadius: rad(t, 12),
+            borderWidth: 1,
+            borderColor: t.c.border,
+            backgroundColor: t.c.surface,
+            paddingHorizontal: 14,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}>
+          <Text style={{ color: machine ? t.c.text : t.c.muted, fontFamily: t.fonts.medium, fontSize: 16, flex: 1 }} numberOfLines={1}>
+            {machine || 'Choose equipment'}
+          </Text>
+          <Icon name="chevronDown" size={18} color={t.c.muted} />
+        </Pressable>
         <T v="small" style={{ fontSize: 12 }}>
           Saved with your rank so you can compare like for like next time.
         </T>
@@ -138,11 +180,64 @@ export default function RankForm() {
           Standards differ by sex, bodyweight and age. Saved to your profile.
         </T>
       </Card>
+
+      <Sheet visible={equipOpen} onClose={() => setEquipOpen(false)} title="Machine or equipment">
+        {standard.map((m) => (
+          <SheetOption
+            key={m}
+            label={m}
+            selected={machine === m}
+            onPress={() => {
+              setMachine(m);
+              setEquipOpen(false);
+            }}
+          />
+        ))}
+        {used.length > 0 && (
+          <T v="label" style={{ marginTop: 10, marginBottom: 2 }}>
+            Used before
+          </T>
+        )}
+        {used.map((m) => (
+          <SheetOption
+            key={m}
+            label={m}
+            selected={machine === m}
+            onPress={() => {
+              setMachine(m);
+              setEquipOpen(false);
+            }}
+          />
+        ))}
+        <View style={{ marginTop: 12, gap: 10 }}>
+          <Field label="Other (type a brand or model)" value={otherText} onChangeText={setOtherText} placeholder="e.g. Hammer Strength bench" />
+          <Button
+            label="Use this"
+            small
+            disabled={!otherText.trim()}
+            onPress={() => {
+              setMachine(otherText.trim());
+              setOtherText('');
+              setEquipOpen(false);
+            }}
+          />
+        </View>
+      </Sheet>
     </Screen>
   );
 }
 
-function BigInput({ label, value, onChange, keyboard }: { label: string; value: string; onChange: (v: string) => void; keyboard: 'decimal-pad' | 'number-pad' }) {
+function BigInput({
+  label,
+  value,
+  onChange,
+  keyboard,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  keyboard: 'decimal-pad' | 'number-pad';
+}) {
   const t = useTheme();
   return (
     <View style={{ flex: 1, gap: 8 }}>
@@ -155,7 +250,17 @@ function BigInput({ label, value, onChange, keyboard }: { label: string; value: 
         selectTextOnFocus
         placeholder="0"
         placeholderTextColor={t.c.muted}
-        style={{ height: 58, borderRadius: rad(t, 12), borderWidth: 1.5, borderColor: t.c.accent, backgroundColor: t.c.surface, color: t.c.text, textAlign: 'center', fontFamily: t.fonts.heading, fontSize: 24 }}
+        style={{
+          height: 58,
+          borderRadius: rad(t, 12),
+          borderWidth: 1.5,
+          borderColor: t.c.accent,
+          backgroundColor: t.c.surface,
+          color: t.c.text,
+          textAlign: 'center',
+          fontFamily: t.fonts.heading,
+          fontSize: 24,
+        }}
       />
     </View>
   );

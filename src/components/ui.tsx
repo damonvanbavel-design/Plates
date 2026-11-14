@@ -1,4 +1,5 @@
-import { type ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
+import Animated, { FadeIn, FadeInDown, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring } from 'react-native-reanimated';
 import {
   Pressable,
   ScrollView,
@@ -20,7 +21,36 @@ import { Icon, type IconName } from './icons';
 
 export function useTheme(): AppTheme {
   const id = useStore((s) => s.settings.themeId);
-  return getTheme(id);
+  const customs = useStore((s) => s.customThemes);
+  return useMemo(() => getTheme(id, customs), [id, customs]);
+}
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+/** Shrinks slightly while pressed, springs back on release. */
+function usePressScale(amount = 0.97) {
+  const reduced = useReducedMotion();
+  const scale = useSharedValue(1);
+  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  return {
+    style,
+    onPressIn: () => {
+      if (!reduced) scale.set(withSpring(amount, { damping: 18, stiffness: 400 }));
+    },
+    onPressOut: () => {
+      scale.set(withSpring(1, { damping: 14, stiffness: 300 }));
+    },
+  };
+}
+
+/** Fades and slides children in, staggered by `i`. Respects Reduce Motion. */
+export function Appear({ i = 0, children, style }: { i?: number; children: ReactNode; style?: StyleProp<ViewStyle> }) {
+  const reduced = useReducedMotion();
+  return (
+    <Animated.View entering={reduced ? undefined : FadeInDown.delay(Math.min(i, 10) * 55).duration(380)} style={style}>
+      {children}
+    </Animated.View>
+  );
 }
 
 export const rad = (t: AppTheme, n: number) => Math.max(2, Math.round(n * t.radius));
@@ -35,7 +65,9 @@ export function T({
   children,
   numberOfLines,
   center,
+  adjustsFontSizeToFit,
 }: {
+  adjustsFontSizeToFit?: boolean;
   v?: Variant;
   color?: string;
   style?: StyleProp<TextStyle>;
@@ -52,7 +84,13 @@ export function T({
       case 'h1':
         return { fontFamily: f.heading, fontSize: 28, lineHeight: 34, textTransform: t.upper ? 'uppercase' : 'none' };
       case 'h2':
-        return { fontFamily: f.heading, fontSize: 18, lineHeight: 24, textTransform: t.upper ? 'uppercase' : 'none', letterSpacing: t.upper ? 0.5 : 0 };
+        return {
+          fontFamily: f.heading,
+          fontSize: 18,
+          lineHeight: 24,
+          textTransform: t.upper ? 'uppercase' : 'none',
+          letterSpacing: t.upper ? 0.5 : 0,
+        };
       case 'title':
         return { fontFamily: f.semibold, fontSize: 16, lineHeight: 21 };
       case 'bodyStrong':
@@ -70,7 +108,11 @@ export function T({
     }
   })();
   return (
-    <Text numberOfLines={numberOfLines} style={[{ color: t.c.text }, base, center && { textAlign: 'center' }, color ? { color } : null, style]}>
+    <Text
+      numberOfLines={numberOfLines}
+      adjustsFontSizeToFit={adjustsFontSizeToFit}
+      minimumFontScale={0.6}
+      style={[{ color: t.c.text }, base, center && { textAlign: 'center' }, color ? { color } : null, style]}>
       {children}
     </Text>
   );
@@ -96,20 +138,34 @@ export function Screen({
   const t = useTheme();
   return (
     <SafeAreaView edges={edges} style={{ flex: 1, backgroundColor: bg ?? t.c.bg }}>
-      {header}
-      {scroll ? (
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[{ padding: 20, paddingBottom: 40, gap: 16 }, contentStyle]}>
-          {children}
-        </ScrollView>
-      ) : (
-        <View style={[{ flex: 1 }, contentStyle]}>{children}</View>
-      )}
-      {footer}
+      <Animated.View key={t.id} entering={FadeIn.duration(250)} style={{ flex: 1 }}>
+        {header}
+        {scroll ? (
+          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[{ padding: 20, paddingBottom: 40, gap: 16 }, contentStyle]}>
+            {children}
+          </ScrollView>
+        ) : (
+          <View style={[{ flex: 1 }, contentStyle]}>{children}</View>
+        )}
+        {footer}
+      </Animated.View>
     </SafeAreaView>
   );
 }
 
-export function Card({ children, style, tint, onPress, accessibilityLabel }: { children: ReactNode; style?: StyleProp<ViewStyle>; tint?: boolean; onPress?: () => void; accessibilityLabel?: string }) {
+export function Card({
+  children,
+  style,
+  tint,
+  onPress,
+  accessibilityLabel,
+}: {
+  children: ReactNode;
+  style?: StyleProp<ViewStyle>;
+  tint?: boolean;
+  onPress?: () => void;
+  accessibilityLabel?: string;
+}) {
   const t = useTheme();
   const s: ViewStyle = {
     backgroundColor: tint ? t.c.tint : t.c.surface,
@@ -118,11 +174,18 @@ export function Card({ children, style, tint, onPress, accessibilityLabel }: { c
     borderWidth: tint || t.cardBorder ? 1 : 0,
     borderColor: tint ? t.c.tintBorder : t.c.border,
   };
+  const press = usePressScale(0.98);
   if (onPress)
     return (
-      <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} onPress={onPress} style={({ pressed }) => [s, { opacity: pressed ? 0.85 : 1 }, style]}>
+      <AnimatedPressable
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        onPress={onPress}
+        onPressIn={press.onPressIn}
+        onPressOut={press.onPressOut}
+        style={[s, style, press.style]}>
         {children}
-      </Pressable>
+      </AnimatedPressable>
     );
   return <View style={[s, style]}>{children}</View>;
 }
@@ -146,17 +209,30 @@ export function Button({
 }) {
   const t = useTheme();
   const bg = kind === 'primary' ? t.c.accent : kind === 'secondary' ? t.c.surface2 : 'transparent';
+  const press = usePressScale(0.97);
   const fg =
-    kind === 'primary' ? t.c.onAccent : kind === 'outline' ? (t.dark ? t.c.accent : t.c.text) : kind === 'danger' ? t.c.danger : kind === 'ghost' ? t.c.muted : t.c.text;
+    kind === 'primary'
+      ? t.c.onAccent
+      : kind === 'outline'
+        ? t.dark
+          ? t.c.accent
+          : t.c.text
+        : kind === 'danger'
+          ? t.c.danger
+          : kind === 'ghost'
+            ? t.c.muted
+            : t.c.text;
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      style={[
         {
-          height: small ? 44 : 54,
+          minHeight: small ? 44 : 54,
           borderRadius: btnRad(t, 14),
           backgroundColor: bg,
           borderWidth: kind === 'outline' ? 1.5 : kind === 'danger' ? 1 : 0,
@@ -166,19 +242,46 @@ export function Button({
           justifyContent: 'center',
           gap: 8,
           paddingHorizontal: 16,
-          opacity: disabled ? 0.45 : pressed ? 0.8 : 1,
+          paddingVertical: 6,
+          opacity: disabled ? 0.45 : 1,
         },
         style,
+        press.style,
       ]}>
       {icon && <Icon name={icon} size={18} color={fg} strokeWidth={2.4} />}
-      <Text style={{ color: fg, fontFamily: t.fonts.bold, fontSize: small ? 14 : 16, textTransform: t.upper ? 'uppercase' : 'none', letterSpacing: t.upper ? 0.4 : 0 }}>
+      <Text
+        numberOfLines={2}
+        maxFontSizeMultiplier={1.4}
+        style={{
+          color: fg,
+          fontFamily: t.fonts.bold,
+          fontSize: small ? 14 : 16,
+          textTransform: t.upper ? 'uppercase' : 'none',
+          letterSpacing: t.upper ? 0.4 : 0,
+          textAlign: 'center',
+          flexShrink: 1,
+        }}>
         {label}
       </Text>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
-export function IconButton({ icon, onPress, label, color, bg, size = 44 }: { icon: IconName; onPress: () => void; label: string; color?: string; bg?: string; size?: number }) {
+export function IconButton({
+  icon,
+  onPress,
+  label,
+  color,
+  bg,
+  size = 44,
+}: {
+  icon: IconName;
+  onPress: () => void;
+  label: string;
+  color?: string;
+  bg?: string;
+  size?: number;
+}) {
   const t = useTheme();
   return (
     <Pressable
@@ -186,7 +289,15 @@ export function IconButton({ icon, onPress, label, color, bg, size = 44 }: { ico
       accessibilityLabel={label}
       hitSlop={6}
       onPress={onPress}
-      style={({ pressed }) => ({ width: size, height: size, borderRadius: btnRad(t, 12), backgroundColor: bg ?? 'transparent', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.7 : 1 })}>
+      style={({ pressed }) => ({
+        width: size,
+        height: size,
+        borderRadius: btnRad(t, 12),
+        backgroundColor: bg ?? 'transparent',
+        alignItems: 'center',
+        justifyContent: 'center',
+        opacity: pressed ? 0.7 : 1,
+      })}>
       <Icon name={icon} size={20} color={color ?? t.c.text} />
     </Pressable>
   );
@@ -208,15 +319,35 @@ export function Chip({ label, selected, onPress }: { label: string; selected?: b
         borderColor: t.c.border,
         justifyContent: 'center',
       }}>
-      <Text style={{ color: selected ? t.c.onAccent : t.c.text, fontFamily: selected ? t.fonts.semibold : t.fonts.medium, fontSize: 13 }}>{label}</Text>
+      <Text style={{ color: selected ? t.c.onAccent : t.c.text, fontFamily: selected ? t.fonts.semibold : t.fonts.medium, fontSize: 13 }}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
 
-export function Segmented<K extends string>({ options, value, onChange }: { options: { key: K; label: string }[]; value: K; onChange: (k: K) => void }) {
+export function Segmented<K extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { key: K; label: string }[];
+  value: K;
+  onChange: (k: K) => void;
+}) {
   const t = useTheme();
   return (
-    <View accessibilityRole="tablist" style={{ flexDirection: 'row', backgroundColor: t.c.surface, borderRadius: rad(t, 12), padding: 4, gap: 4, borderWidth: t.cardBorder ? 1 : 0, borderColor: t.c.border }}>
+    <View
+      accessibilityRole="tablist"
+      style={{
+        flexDirection: 'row',
+        backgroundColor: t.c.surface,
+        borderRadius: rad(t, 12),
+        padding: 4,
+        gap: 4,
+        borderWidth: t.cardBorder ? 1 : 0,
+        borderColor: t.c.border,
+      }}>
       {options.map((o) => {
         const sel = o.key === value;
         return (
@@ -225,7 +356,14 @@ export function Segmented<K extends string>({ options, value, onChange }: { opti
             accessibilityRole="tab"
             accessibilityState={{ selected: sel }}
             onPress={() => onChange(o.key)}
-            style={{ flex: 1, height: 40, borderRadius: rad(t, 9), alignItems: 'center', justifyContent: 'center', backgroundColor: sel ? t.c.surface2 : 'transparent' }}>
+            style={{
+              flex: 1,
+              height: 40,
+              borderRadius: rad(t, 9),
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: sel ? t.c.surface2 : 'transparent',
+            }}>
             <Text style={{ color: sel ? t.c.text : t.c.muted, fontFamily: sel ? t.fonts.semibold : t.fonts.medium, fontSize: 13 }}>{o.label}</Text>
           </Pressable>
         );
@@ -265,7 +403,16 @@ export function Field({ label, style, ...props }: TextInputProps & { label?: str
 export function Header({ title, onBack, right }: { title: string; onBack?: () => void; right?: ReactNode }) {
   const t = useTheme();
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 6, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: t.c.border }}>
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 8,
+        paddingVertical: 6,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: t.c.border,
+      }}>
       {onBack ? <IconButton icon="chevronLeft" label="Back" onPress={onBack} /> : <View style={{ width: 12 }} />}
       <T v="h2" style={{ flex: 1, fontSize: 20 }} numberOfLines={1}>
         {title}
@@ -286,7 +433,7 @@ export function Stat({ label, value, tint }: { label: string; value: string; tin
       <T v="small" color={tint ? t.c.tintText : undefined}>
         {label}
       </T>
-      <T v="num" color={tint ? (t.dark ? t.c.accent : t.c.text) : undefined}>
+      <T v="num" numberOfLines={1} adjustsFontSizeToFit color={tint ? (t.dark ? t.c.accent : t.c.text) : undefined}>
         {value}
       </T>
     </Card>

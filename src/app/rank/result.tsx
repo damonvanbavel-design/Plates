@@ -41,11 +41,14 @@ export default function RankResult() {
           <Path d="M48 3l41 22v54L48 101 7 79V25z" fill={t.c.tint} stroke={strong} strokeWidth={3} />
           <Path d="M30 60l18-26 18 26M36 70h24" fill="none" stroke={strong} strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" />
         </Svg>
-        <Text accessibilityRole="header" style={{ fontFamily: t.fonts.heading, fontSize: 34, color: strong, textTransform: t.upper ? 'uppercase' : 'none' }}>
+        <Text
+          accessibilityRole="header"
+          style={{ fontFamily: t.fonts.heading, fontSize: 34, color: strong, textTransform: t.upper ? 'uppercase' : 'none' }}>
           {res.level}
         </Text>
         <T center>
-          Stronger than about <Text style={{ fontFamily: t.fonts.bold }}>{res.percentile}%</Text> of {rc.sex === 'male' ? 'men' : 'women'} at {kg(rc.bodyweightKg)}
+          Stronger than about <Text style={{ fontFamily: t.fonts.bold }}>{res.percentile}%</Text> of {rc.sex === 'male' ? 'men' : 'women'} at{' '}
+          {kg(rc.bodyweightKg)}
         </T>
         <T v="small" center>
           {exerciseName(all, rc.exerciseId)} · {rc.machine}
@@ -67,7 +70,13 @@ export default function RankResult() {
         <LevelBar thresholds={res.thresholds} value={rc.est1rm} activeIndex={res.levelIndex} format={(v) => toDisplay(v, unit)} />
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 }}>
           {LEVELS.map((l, i) => (
-            <Text key={l} style={{ fontSize: 10.5, color: i === res.levelIndex ? strong : t.c.muted, fontFamily: i === res.levelIndex ? t.fonts.bold : t.fonts.medium }}>
+            <Text
+              key={l}
+              style={{
+                fontSize: 10.5,
+                color: i === res.levelIndex ? strong : t.c.muted,
+                fontFamily: i === res.levelIndex ? t.fonts.bold : t.fonts.medium,
+              }}>
               {l}
             </Text>
           ))}

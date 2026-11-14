@@ -1,6 +1,6 @@
 # Plates
 
-A workout tracker for your phone, built with Expo (React Native). Log sets in two taps, see what you lifted last time, get a rest timer automatically, track personal records and progress, check your strength rank, and pick from nine themes.
+A workout tracker for your phone, built with Expo (React Native). Log sets in two taps, see what you lifted last time, get a rest timer per exercise, track personal records and progress, check your strength rank, browse 876 exercises with pictures, and pick from 15 themes or design your own. The home-screen icon changes with your theme (Android).
 
 Everything is stored on your phone. No account and no internet needed.
 
@@ -48,6 +48,14 @@ The app reloads by itself when you change the code.
 | Theme picker (9 looks) | `src/app/themes.tsx`, colours and fonts in `src/lib/themes.ts` |
 
 Data lives in `src/lib/store.ts` (Zustand, saved to SQLite on the phone). The 49 built-in exercises and starter routines are in `src/lib/exercises.ts`.
+
+## Credits
+
+- Exercises, pictures and instructions: [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (public domain, The Unlicense). Thumbnails are bundled in `assets/ex/`; full-size pictures load from that repository on the exercise page.
+
+## How theme icons work (Android)
+
+`plugins/withThemeIcons.js` adds one launcher entry per theme icon, and `modules/plates-icon` switches between them when the app goes to the background. Icons are generated into `assets/app-icons/`. This only works in the installed APK, not in Expo Go.
 
 ## Before you publish: replace the Rank standards
 

@@ -2,8 +2,8 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { Button, Card, Empty, IconButton, Row, Screen, T, rad, useTheme } from '@/components/ui';
-import { MONTHS, fmtDuration, fmtWeight, prsInWorkout, sameDay, workoutSetCount, workoutVolumeKg } from '@/lib/calc';
+import { Appear, Button, Card, Empty, IconButton, Row, Screen, T, rad, useTheme } from '@/components/ui';
+import { MONTHS, fmtDuration, fmtVolume, prsInWorkout, sameDay, workoutSetCount, workoutVolumeKg } from '@/lib/calc';
 import { useStore } from '@/lib/store';
 
 export default function History() {
@@ -44,7 +44,7 @@ export default function History() {
               {MONTHS[m]} {y}
             </T>
             <T v="small" style={{ fontSize: 12 }}>
-              {inMonth.length} workout{inMonth.length === 1 ? '' : 's'} · {fmtWeight(Math.round(volume), unit)}
+              {inMonth.length} workout{inMonth.length === 1 ? '' : 's'} · {fmtVolume(volume, unit)}
             </T>
           </View>
           <IconButton icon="chevronRight" label="Next month" onPress={() => shift(1)} />
@@ -85,7 +85,8 @@ export default function History() {
                   }}>
                   <Text
                     style={{
-                      color: trained && (isToday || isSel) ? t.c.onAccent : trained ? (t.dark ? t.c.accent : t.c.text) : future ? t.c.muted : t.c.text,
+                      color:
+                        trained && (isToday || isSel) ? t.c.onAccent : trained ? (t.dark ? t.c.accent : t.c.text) : future ? t.c.muted : t.c.text,
                       fontFamily: trained ? t.fonts.bold : t.fonts.regular,
                       fontSize: 13,
                     }}>
@@ -108,39 +109,46 @@ export default function History() {
       )}
 
       {workouts.length === 0 ? (
-        <Empty icon="calendar" title="No workouts yet" text="Finished workouts show up here, with every set you logged." action={<Button label="Start a workout" small onPress={() => router.push('/')} style={{ marginTop: 8 }} />} />
+        <Empty
+          icon="calendar"
+          title="No workouts yet"
+          text="Finished workouts show up here, with every set you logged."
+          action={<Button label="Start a workout" small onPress={() => router.push('/')} style={{ marginTop: 8 }} />}
+        />
       ) : shown.length === 0 ? (
         <T v="small" center>
           No workouts {selected ? 'on this day' : 'this month'}.
         </T>
       ) : (
-        shown.map((w) => {
+        shown.map((w, wi) => {
           const d = new Date(w.startedAt);
           const prs = prsInWorkout(workouts, w).length;
           return (
-            <Card key={w.id} onPress={() => router.push(`/history/${w.id}`)} accessibilityLabel={`Open ${w.name}`} style={{ paddingVertical: 12 }}>
-              <Row gap={14}>
-                <View style={{ width: 44, alignItems: 'center' }}>
-                  <T v="label" style={{ fontSize: 11 }}>
-                    {d.toLocaleDateString(undefined, { weekday: 'short' })}
-                  </T>
-                  <T v="num">{d.getDate()}</T>
-                </View>
-                <View style={{ flex: 1, gap: 3 }}>
-                  <T v="title">{w.name}</T>
-                  <T v="small" style={{ fontSize: 12 }}>
-                    {fmtDuration((w.endedAt ?? w.startedAt) - w.startedAt)} · {fmtWeight(Math.round(workoutVolumeKg(w)), unit)} · {workoutSetCount(w)} sets
-                  </T>
-                </View>
-                {prs > 0 && (
-                  <View style={{ backgroundColor: t.c.accent, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 }}>
-                    <Text style={{ color: t.c.onAccent, fontFamily: t.fonts.bold, fontSize: 11 }}>
-                      {prs} PR{prs > 1 ? 's' : ''}
-                    </Text>
+            <Appear key={w.id} i={wi}>
+              <Card onPress={() => router.push(`/history/${w.id}`)} accessibilityLabel={`Open ${w.name}`} style={{ paddingVertical: 12 }}>
+                <Row gap={14}>
+                  <View style={{ width: 44, alignItems: 'center' }}>
+                    <T v="label" style={{ fontSize: 11 }}>
+                      {d.toLocaleDateString(undefined, { weekday: 'short' })}
+                    </T>
+                    <T v="num">{d.getDate()}</T>
                   </View>
-                )}
-              </Row>
-            </Card>
+                  <View style={{ flex: 1, gap: 3 }}>
+                    <T v="title">{w.name}</T>
+                    <T v="small" style={{ fontSize: 12 }}>
+                      {fmtDuration((w.endedAt ?? w.startedAt) - w.startedAt)} · {fmtVolume(workoutVolumeKg(w), unit)} · {workoutSetCount(w)} sets
+                    </T>
+                  </View>
+                  {prs > 0 && (
+                    <View style={{ backgroundColor: t.c.accent, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 }}>
+                      <Text style={{ color: t.c.onAccent, fontFamily: t.fonts.bold, fontSize: 11 }}>
+                        {prs} PR{prs > 1 ? 's' : ''}
+                      </Text>
+                    </View>
+                  )}
+                </Row>
+              </Card>
+            </Appear>
           );
         })
       )}
